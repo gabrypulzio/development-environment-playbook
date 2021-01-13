@@ -22,4 +22,4 @@ After running the playbook you can install your favourites ruby and nodejs versi
 2. Install ruby with `asdf install ruby [version]` e.g. `asdf install ruby 2.7.2`
 3. Choose your nodejs version from `asdf list all nodejs`
 4. Install nodejs with `asdf install nodejs [version]` e.g. `asdf install nodejs 15.5.1`
-5. Set current version on your system according to the [asdf documentation](https://asdf-vm.com/#/core-manage-versions).
+5. Set current version on your system according to the [asdf documentation](https://asdf-vm.com/#/core-manage-versions?id=set-current-version).
