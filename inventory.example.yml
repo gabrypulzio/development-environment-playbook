@@ -1,0 +1,7 @@
+all:
+  children:
+    development:
+      hosts:
+        localhost:2222:
+      vars:
+        ansible_python_interpreter: /usr/bin/python3

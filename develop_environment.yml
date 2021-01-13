@@ -1,0 +1,104 @@
+- hosts: development
+  become_method: su
+  vars_files:
+    - variables.yml
+  tasks:
+    - name: Base - Set authorized key taken from file
+      ansible.posix.authorized_key:
+        user: "{{user}}"
+        state: present
+        key: "{{ lookup('file', pub_key) }}"
+    - name: Base - Install sudo
+      become: true
+      apt:
+        name: sudo
+        update_cache: yes
+    - name: "Base - Add {{user}} to sudoers"
+      become: true
+      user:
+        name: "{{user}}"
+        groups: sudo
+        append: yes
+    - name: reset connection
+      meta: reset_connection
+    - name: flush handlers
+      meta: flush_handlers
+    - name: Base - Install prerequisites for asdf, nodejs and ruby
+      become: true
+      apt:
+        name: ['curl', 'git', 'libssl-dev', 'libyaml-dev', 'zlib1g-dev', 'libncurses5-dev', 'libffi-dev', 'gpg',
+               'dirmngr', 'autoconf' ,'bison' ,'build-essential' ,'libssl-dev' ,'libyaml-dev' ,'libreadline6-dev' ,
+               'zlib1g-dev' ,'libncurses5-dev' ,'libffi-dev' ,'libgdbm6' ,'libgdbm-dev' ,'libdb-dev']
+        update_cache: yes
+    - name: Asdf - clone asdf repository
+      git:
+        repo: "https://github.com/asdf-vm/asdf.git"
+        dest: "/home/{{ user }}/.asdf"
+        version: "{{ asdf_version }}"
+    - name: Asdf - Add asdf to bashrc
+      lineinfile:
+        path: /home/{{ user }}//.bashrc
+        line: . $HOME/.asdf/asdf.sh
+    - name: Nodejs - Add nodejs plugin
+      command:
+        cmd: "/home/{{ user }}/.asdf/bin/asdf plugin-add nodejs https://github.com/asdf-vm/asdf-nodejs.git"
+        creates: /home/{{ user }}/.asdf/plugins/nodejs
+    - name: Nodejs - set nodejs plugin vars
+      set_fact:
+        asdf_nodejs_keyring: "/home/{{ user }}/.asdf/keyrings/nodejs"
+    - name: Nodejs - create nodejs keyring
+      file:
+        path: "{{ asdf_nodejs_keyring }}"
+        state: directory
+    - name: Nodejs - import Node.js keys to keyring
+      command:
+        cmd: "bash -lc '/home/{{ user }}/.asdf/plugins/nodejs/bin/import-release-team-keyring'"
+        creates: "{{ asdf_nodejs_keyring }}/asdf-nodejs.gpg"
+      environment:
+        GNUPGHOME: "{{ asdf_nodejs_keyring }}"
+    - name: Ruby - Add ruby plugin
+      command:
+        cmd: "/home/{{ user }}/.asdf/bin/asdf plugin-add ruby https://github.com/asdf-vm/asdf-ruby.git"
+        creates: /home/{{ user }}/.asdf/plugins/ruby
+    - name: Libraries -  Install SQLite libraries
+      become: true
+      apt:
+        cache_valid_time: 3600
+        name: libsqlite3-dev
+      tags:
+        - databases-lib
+        - sqlite-lib
+    - name: Libraries -  Install postgres libraries
+      become: true
+      apt:
+        cache_valid_time: 3600
+        name: libpq-dev
+      tags:
+        - databases-lib
+        - postgres-lib
+    - name: Libraries -  Install mysql/mariadb libraries
+      become: true
+      apt:
+        cache_valid_time: 3600
+        name: libmariadbclient-dev
+      tags:
+        - databases-lib
+        - mariadb-lib
+    - name: "Add Yarn GPG"
+      become: true
+      apt_key:
+        url: https://dl.yarnpkg.com/debian/pubkey.gpg
+        id: 72ECF46A56B4AD39C907BBB71646B01B86E50310
+        keyring: /etc/apt/trusted.gpg.d/yarn.gpg
+        state: present
+    - name: 'Add yarn repository'
+      become: true
+      apt_repository:
+        filename: yarn
+        repo: "deb http://dl.yarnpkg.com/debian/ stable main"
+        state: present
+    - name: "Yarn | Update APT cache"
+      become: true
+      apt:
+        name: yarn
+        update_cache: yes
