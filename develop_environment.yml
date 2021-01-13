@@ -97,7 +97,7 @@
         filename: yarn
         repo: "deb http://dl.yarnpkg.com/debian/ stable main"
         state: present
-    - name: "Yarn | Update APT cache"
+    - name: "Install Yarn package"
       become: true
       apt:
         name: yarn
